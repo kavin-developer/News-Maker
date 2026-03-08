@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "DM Serif Display", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom utilities */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility box-decoration-clone {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+body {
+  @apply bg-[#050505] text-white font-sans;
+}
