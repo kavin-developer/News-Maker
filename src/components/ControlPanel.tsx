@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Image as ImageIcon, Download } from 'lucide-react';
+import { Camera, Image as ImageIcon, Download, Layers, Loader2 } from 'lucide-react';
 import { NewsData, CATEGORY_COLORS, CategoryColor, HighlightStyle } from '../types';
 import { cn } from '../utils/cn';
 
@@ -7,9 +7,21 @@ interface ControlPanelProps {
   data: NewsData;
   onChange: (key: keyof NewsData, value: any) => void;
   onDownload: () => void;
+  isBulk?: boolean;
+  bulkCount?: number;
+  isDownloading?: boolean;
+  downloadProgress?: { current: number; total: number } | null;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ data, onChange, onDownload }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({
+  data,
+  onChange,
+  onDownload,
+  isBulk = false,
+  bulkCount = 1,
+  isDownloading = false,
+  downloadProgress = null,
+}) => {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -34,7 +46,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ data, onChange, onDownload 
 
   const highlightStyles: { id: HighlightStyle; label: string; class: string }[] = [
     { id: 'bold-white', label: 'Bold White', class: 'bg-gray-800 text-white border-gray-700' },
-    { id: 'bold-color', label: 'Bold Color', class: 'bg-gray-800 text-red-500 border-red-500/50' }, // Dynamically style this?
+    { id: 'bold-color', label: 'Bold Color', class: 'bg-gray-800 text-red-500 border-red-500/50' },
     { id: 'highlight', label: 'Highlight', class: 'bg-yellow-200 text-black border-yellow-400 font-bold' },
     { id: 'underline', label: 'Underline', class: 'bg-gray-800 text-white underline decoration-2 border-gray-700' },
   ];
@@ -136,14 +148,45 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ data, onChange, onDownload 
       <div className="mb-8">
         <div className="flex justify-between items-end mb-3">
             <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 font-mono">Headline</label>
-            <span className="text-[9px] text-gray-600 font-mono">WRAP WORDS IN **ASTERISKS**</span>
+            <span className="text-[9px] text-gray-600 font-mono">**BOLD** · USE / FOR BULK</span>
         </div>
+
+        {/* Bulk Mode Banner */}
+        {isBulk && (
+          <div className="mb-3 bg-red-950/20 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+            <Layers className="w-3 h-3 text-red-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                Bulk Mode Active — {bulkCount} posts
+              </p>
+              <p className="text-[9px] text-gray-600 font-mono mt-0.5">
+                Each segment separated by / will become its own post
+              </p>
+            </div>
+          </div>
+        )}
+
         <textarea 
           value={data.headline}
           onChange={(e) => onChange('headline', e.target.value)}
-          className="w-full h-32 bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-sm text-gray-300 focus:outline-none focus:border-red-500 transition-colors resize-none leading-relaxed font-serif placeholder-gray-700"
-          placeholder="Former hostage discusses life in **Evin prison**..."
+          className={cn(
+            "w-full h-32 bg-[#0a0a0a] border rounded-lg p-4 text-sm text-gray-300 focus:outline-none transition-colors resize-none leading-relaxed font-serif placeholder-gray-700",
+            isBulk ? "border-red-900/50 focus:border-red-500" : "border-gray-800 focus:border-red-500"
+          )}
+          placeholder={"Headline one / Headline two / Headline three\n\nOr use **asterisks** to bold words."}
         />
+
+        {/* Post list preview in bulk mode */}
+        {isBulk && (
+          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto scrollbar-hide">
+            {data.headline.split(/(?<!\*)\s*\/\s*(?!\*)/).filter(h => h.trim()).map((h, i) => (
+              <div key={i} className="flex items-start gap-2 text-[10px] font-mono text-gray-600">
+                <span className="text-red-500 shrink-0 font-bold mt-0.5">#{i + 1}</span>
+                <span className="line-clamp-1">{h.replace(/\*\*/g, '').trim()}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Highlight Style */}
@@ -211,11 +254,40 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ data, onChange, onDownload 
       {/* Footer Button */}
       <button 
         onClick={onDownload}
-        className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-red-900/20 transition-all active:scale-95 uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 group"
+        disabled={isDownloading}
+        className={cn(
+          "w-full font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 group",
+          isBulk
+            ? "bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white shadow-red-900/30"
+            : "bg-red-600 hover:bg-red-500 text-white shadow-red-900/20",
+          isDownloading ? "opacity-70 cursor-not-allowed" : ""
+        )}
       >
-        <Download className="w-4 h-4 group-hover:animate-bounce" />
-        Download Image
+        {isDownloading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {downloadProgress
+              ? `Saving ${downloadProgress.current} / ${downloadProgress.total}...`
+              : 'Preparing...'}
+          </>
+        ) : isBulk ? (
+          <>
+            <Layers className="w-4 h-4" />
+            Download {bulkCount} Posts
+          </>
+        ) : (
+          <>
+            <Download className="w-4 h-4 group-hover:animate-bounce" />
+            Download Image
+          </>
+        )}
       </button>
+
+      {isBulk && !isDownloading && (
+        <p className="text-center text-[9px] font-mono text-gray-700 mt-2 uppercase tracking-widest">
+          Files will save as bulk-news-###-1.png, bulk-news-###-2.png…
+        </p>
+      )}
     </div>
   );
 }
