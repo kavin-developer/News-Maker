@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { createRoot } from 'react-dom/client';
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import ControlPanel from './components/ControlPanel';
 import NewsPreview from './components/NewsPreview';
 import { NewsData } from './types';
@@ -174,6 +175,7 @@ export function App() {
         </p>
       </div>
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
